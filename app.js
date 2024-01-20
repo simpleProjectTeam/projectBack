@@ -235,6 +235,70 @@ app.post("/:user_code/account", async (req,res)=>{
   }
 })
 
+//수정
+
+app.patch("/:user_code/account/:no", async (req, res) => {
+  const { user_code, no } = req.params;
+  const { content, price } = req.body;
+
+  try {
+    const [prices] = await pool.query(
+      `
+      SELECT *
+      FROM accountBook
+      WHERE user_code = ?
+      AND no = ?
+      `,
+      [user_code, no]
+    );
+
+    if (!prices.length) {
+      res.status(404).json({
+        resultCode: "F-1",
+        msg: "수정 대상이 없습니다.",
+      });
+      return;
+    }
+
+    await pool.query(
+      `
+      UPDATE accountBook
+      SET modify_date = NOW(),
+      content = ?,
+      price = ?
+      WHERE user_code = ?
+      AND no = ?
+      `,
+      [content, price, user_code, no]
+    );
+
+    const [[justModifiedPrice]] = await pool.query(
+      `
+      SELECT *
+      FROM accountBook
+      WHERE user_code = ?
+      AND no = ?
+      `,
+      [user_code, no]
+    );
+
+    const formattedPrices = formatPrices([justModifiedPrice]);
+
+    res.json({
+      resultCode: "S-1",
+      msg: `${no}번 수정을 하였습니다.`,
+      data: formattedPrices,
+    });
+
+  } catch (error) {
+    console.error("데이터베이스 쿼리 실행 중 오류:", error);
+    res.status(500).json({
+      resultCode: "F-2",
+      msg: "서버 오류",
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });
