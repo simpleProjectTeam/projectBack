@@ -115,6 +115,7 @@ app.get("/:user_code/account/:no", async (req, res) => {
 
 app.delete("/:user_code/account/:no", async (req,res) => {
   const {user_code, no} = req.params;
+  
   try {
     const [prices] = await pool.query(
       `
@@ -149,6 +150,80 @@ app.delete("/:user_code/account/:no", async (req,res) => {
       resultCode: "S-1",
       msg: `${no}번 내용을 삭제하였습니다.`,
       data: formattedPrices,
+    });
+
+  } catch (error) {
+    console.error("데이터베이스 쿼리 실행 중 오류:", error);
+    res.status(500).json({
+      resultCode: "F-2",
+      msg: "서버 오류",
+    });
+  }
+})
+
+//업데이트
+app.post("/:user_code/account", async (req,res)=>{
+  const {user_code} = req.params;
+
+  const {content,price} = req.body;
+
+  try {
+    const [lastPrice] = await pool.query(
+      `
+      SELECT *
+      FROM accountBook
+      WHERE user_code = ?
+      ORDER BY no DESC
+      LIMIT 1
+      `,
+      [user_code]
+    );
+
+    const no = (lastPrice && lastPrice[0]?.no + 1) || 1;
+
+    const [insertedPrice] = await pool.query(
+      `
+      INSERT INTO accountBook
+      SET reg_date = NOW(),
+          update_date = NOW(),
+          modify_date = NULL,
+          user_code = ?,
+          no = ?,
+          content = ?,
+          price = ?
+      `,
+      [user_code, no, content, price]
+    );
+      
+    if (!content) {
+      res.status(404).json({
+        resultCode: "F-1",
+        msg: "내용 없음",
+      });
+      return;
+    }
+    if (!price) {
+      res.status(404).json({
+        resultCode: "F-1",
+        msg: "가격 없음",
+      });
+      return;
+    }
+    
+    const [createdPrice] = await pool.query(
+      `
+      SELECT *
+      FROM accountBook
+      WHERE no = ?
+      `,
+      [no]
+    );
+    
+
+    res.json({
+      resultCode: "S-1",
+      msg: `${no}번 내용을 업데이트하였습니다.`,
+      data: createdPrice,
     });
 
   } catch (error) {
