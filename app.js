@@ -49,9 +49,16 @@ app.get("/:user_code/account", async (req, res) => {
 
     const formattedPrices = formatPrices(prices);
 
+    if (!formattedPrices.length) {
+      res.status(404).json({
+        resultCode: "F-1",
+        msg: "조회 실패",
+      });
+      return;
+    }
     res.json({
       resultCode: "S-1",
-      msg: "성공",
+      msg: "조회 성공",
       data: formattedPrices,
     });
 
@@ -84,14 +91,14 @@ app.get("/:user_code/account/:no", async (req, res) => {
     if (!formattedPrices.length) {
       res.status(404).json({
         resultCode: "F-1",
-        msg: "실패",
+        msg: "단건 조회 실패",
       });
       return;
     }
 
     res.json({
       resultCode: "S-1",
-      msg: "성공",
+      msg: "단건 조회 성공",
       data: formattedPrices,
     });
 
@@ -103,6 +110,55 @@ app.get("/:user_code/account/:no", async (req, res) => {
     });
   }
 });
+
+//삭제
+
+app.delete("/:user_code/account/:no", async (req,res) => {
+  const {user_code, no} = req.params;
+  try {
+    const [prices] = await pool.query(
+      `
+      SELECT *
+      FROM accountBook
+      WHERE user_code = ?
+      AND no = ?
+      `,
+      [user_code, no]
+    );
+
+    const formattedPrices = formatPrices(prices);
+
+    if (!formattedPrices.length) {
+      res.status(404).json({
+        resultCode: "F-1",
+        msg: "삭제실패",
+      });
+      return;
+    }
+    
+    await pool.query(
+      `
+      DELETE FROM accountBook
+      WHERE user_code = ?
+      AND no = ?
+      `,
+      [user_code, no]
+    );
+
+    res.json({
+      resultCode: "S-1",
+      msg: `${no}번 내용을 삭제하였습니다.`,
+      data: formattedPrices,
+    });
+
+  } catch (error) {
+    console.error("데이터베이스 쿼리 실행 중 오류:", error);
+    res.status(500).json({
+      resultCode: "F-2",
+      msg: "서버 오류",
+    });
+  }
+})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
