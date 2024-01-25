@@ -29,6 +29,10 @@ const formatPrices = (prices) => {
   }));
 };
 
+app.get("/", (req, res) => {
+  res.send("accountBook Start");
+});
+
 // 조회
 app.get("/:user_code/account", async (req, res) => {
   const { user_code } = req.params;
