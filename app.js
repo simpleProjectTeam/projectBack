@@ -30,7 +30,7 @@ const formatPrices = (prices) => {
 };
 
 app.get("/", (req, res) => {
-  res.send("accountBook Start");
+  res.send("accountBook Start!");
 });
 
 // 조회
